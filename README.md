@@ -96,3 +96,5 @@ $xmW->append($cst);
 */
 $xmW->finalize();
 ```
+**Output**
+[![screen.png](https://s22.postimg.org/4hxa6zvu9/screen.png)](https://postimg.org/image/ocjbt4b1p/)
