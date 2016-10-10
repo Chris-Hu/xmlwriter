@@ -33,7 +33,7 @@ for ($i = 0 ; $i < 4000000 ; $i++) {
         ]
     ];
     $cst = $row;
-    $xmW->append($cst ,"customers > customer");
+    $xmW->append($cst ,"customers > customer #flag:blue, pipe:cool#");
 }
 
 // Here is for bulk feeding, you append array outside of loop

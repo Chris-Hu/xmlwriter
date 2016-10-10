@@ -100,14 +100,18 @@ class ExmlWriter extends \DomDocument
     /**
      * Writes on disk
      * @param $data
+     * @param bool $final
      * @return bool
      * @throws \Exception
      */
-    protected function write($data)
+    protected function write($data,$final= false)
     {
         $data = (string) $data;
         if (strlen($data) > 0 && fwrite($this->fileHandler, $data) === false) {
             throw new \Exception("Failed to write to File...");
+        }
+        if ($final) {
+            fclose($this->fileHandler);
         }
         return true;
     }
@@ -134,9 +138,9 @@ class ExmlWriter extends \DomDocument
             if ($this->currentParent !== $this->nodeClosed) {
                 $this->write(
                     $this->closeNode($this->currentParent)
-                );
+                    );
             }
-            $this->write("</" . $this->rootElt . ">");
+            $this->write("</" . $this->rootElt . ">".PHP_EOL ,true);
         }
     }
 
@@ -160,6 +164,7 @@ class ExmlWriter extends \DomDocument
         $res = "\n";
         $end = $this->formatOutput ? "\n" : '';
         foreach ($exploded as $k => $v) {
+            $v = $this->buildNodeAttribute($v ,$close);
             $res .= str_repeat("\t", $k) . "<$close" . trim($v) . ">$end";
         }
 
@@ -202,6 +207,35 @@ class ExmlWriter extends \DomDocument
         }
 
         $this->createNode($data, $this->root, $this);
+    }
+
+    /**
+     * @param $attribute
+     * @return mixed
+     */
+    protected function buildNodeAttribute($node ,$close)
+    {
+         if (!empty($close) && ($aOff = preg_replace("/#.*#/","",$node))) {
+             return $aOff;
+         }
+
+         $p = "/((\w+:\w+)(\s*,\s*)?)(?R)?/";
+         if (preg_match("/#.*#/",$node,$s) && preg_match($p,$node)) {
+             $u = explode(',',str_replace('#','',$s[0]));
+
+
+             array_walk($u, function(&$value) {
+                 $r = explode(':',$value);
+                 $value = '"'.trim($r[0]).'"="'.trim($r[1]).'"';
+             });
+
+
+             if ($aOff = preg_replace("/#.*#/","",$node)) {
+                 return $aOff." ".str_replace(',' ,' ', implode (',', array_values($u)));
+             }
+
+        }
+        return $node;
     }
 
     /**
