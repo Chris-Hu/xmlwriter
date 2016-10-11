@@ -123,9 +123,9 @@ class ExmlWriter extends \DomDocument
     protected function getHead()
     {
         $root = "<" . $this->rootElt . ">";
-        $head = $this->formatOutput ? self::$xElt->saveXML() . PHP_EOL . $root : self::$xElt->saveXML();
-        return $head;
+        return $this->formatOutput ? self::$xElt->saveXML() . PHP_EOL . $root : self::$xElt->saveXML().$root;
     }
+
 
     /**
      * Finalizes writing
