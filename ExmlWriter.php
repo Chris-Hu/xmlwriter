@@ -8,6 +8,8 @@
  */
 class ExmlWriter extends \DomDocument
 {
+    const VERSION = "1.0";
+
     /**
      * @var \DOMDocument
      */
@@ -65,8 +67,8 @@ class ExmlWriter extends \DomDocument
      */
     public function __construct($destFile = null, $rootElt = "root", $encoding = "utf-8", $formatting = false, $progressive = false)
     {
-        parent::__construct();
-        self::$xElt = new \DOMDocument();
+        parent::__construct(self::VERSION ,$encoding );
+        self::$xElt = new \DOMDocument(self::VERSION ,$encoding);
         $this->encoding = $encoding;
         $this->formatOutput = $formatting;
         $this->noname = "no_oo";
@@ -340,6 +342,10 @@ class ExmlWriter extends \DomDocument
     public function __toString()
     {
         return (string)$this->saveXML();
+    }
+
+    public function validate() {
+
     }
 
 }
