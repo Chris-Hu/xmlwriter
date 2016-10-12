@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Class ExmlWriter
  * A simple multi dimensional array to xml,
@@ -65,15 +64,19 @@ class ExmlWriter extends \DomDocument
      * @param bool|false $progressive
      * @throws \Exception
      */
-    public function __construct($destFile = null, $rootElt = "root", $encoding = "utf-8", $formatting = false, $progressive = false)
+    public function __construct($destFile = null, $rootElt = "root", $encoding = "utf-8", $formatting = false, $progressive = false, $rootAttributes = "")
     {
-        parent::__construct(self::VERSION ,$encoding );
-        self::$xElt = new \DOMDocument(self::VERSION ,$encoding);
+        parent::__construct(self::VERSION, $encoding);
+        self::$xElt = new \DOMDocument(self::VERSION, $encoding);
         $this->encoding = $encoding;
         $this->formatOutput = $formatting;
         $this->noname = "no_oo";
         $this->rootElt = $rootElt;
         $this->root = $this->appendChild($this->createElement($rootElt));
+        if (!empty($rootAttributes)) {
+            $this->rootAddAttribute($rootAttributes);
+        }
+
         $this->destFile = $destFile;
         $this->progressive = $progressive && !empty($destFile);
 
@@ -81,11 +84,57 @@ class ExmlWriter extends \DomDocument
     }
 
     /**
+     * @param $attributeString
+     */
+    public function rootAddAttribute($attributeString)
+    {
+        $this->createAttributes($this->root, $attributeString);
+    }
+
+    /**
+     * Creates attributes from string special format ex:#flag=blue, pipe=cool#
+     * @param \DOMNode $dom
+     * @param $attributes
+     */
+    protected function createAttributes(\DOMNode $dom, $attributes)
+    {
+        if (!empty($attributes)) {
+            $found = $this->matchAttributeString($attributes, true);
+            foreach ($found as $k => $attr) {
+                $dom->setAttribute(key($attr), current($attr));
+            }
+        }
+    }
+
+    /**
+     * @param $attr
+     * @param bool|false $returnArray
+     * @return array|string
+     */
+    protected function matchAttributeString($attr, $returnArray = false)
+    {
+        if (preg_match("/#.*#/", $attr, $s) && preg_match("/((\w+=\w+)(\s*,\s*)?)(?R)?/", $attr)) {
+            $u = explode(',', str_replace('#', '', $s[0]));
+
+            array_walk($u, function (&$value) use ($returnArray) {
+                $r = explode('=', $value);
+                $value = $returnArray ? [$r[0] => $r[1]] : ('"' . trim($r[0]) . '"="' . trim($r[1]) . '"');
+            });
+
+            if ($returnArray) {
+                return $u;
+            } elseif ($aOff = preg_replace("/#.*#/", "", $attr)) {
+                return $aOff . " " . str_replace(',', ' ', implode(',', array_values($u)));
+            }
+        }
+        return $attr;
+    }
+
+    /**
      * initializes Writer
      *
      * @throws \Exception
      */
-
     protected function init()
     {
         if (!empty($this->destFile)) {
@@ -106,9 +155,9 @@ class ExmlWriter extends \DomDocument
      * @return bool
      * @throws \Exception
      */
-    protected function write($data,$final= false)
+    protected function write($data, $final = false)
     {
-        $data = (string) $data;
+        $data = (string)$data;
         if (strlen($data) > 0 && fwrite($this->fileHandler, $data) === false) {
             throw new \Exception("Failed to write to File...");
         }
@@ -125,9 +174,8 @@ class ExmlWriter extends \DomDocument
     protected function getHead()
     {
         $root = "<" . $this->rootElt . ">";
-        return $this->formatOutput ? self::$xElt->saveXML() . PHP_EOL . $root : self::$xElt->saveXML().$root;
+        return $this->formatOutput ? self::$xElt->saveXML() . PHP_EOL . $root : self::$xElt->saveXML() . $root;
     }
-
 
     /**
      * Finalizes writing
@@ -140,9 +188,9 @@ class ExmlWriter extends \DomDocument
             if ($this->currentParent !== $this->nodeClosed) {
                 $this->write(
                     $this->closeNode($this->currentParent)
-                    );
+                );
             }
-            $this->write("</" . $this->rootElt . ">".PHP_EOL ,true);
+            $this->write("</" . $this->rootElt . ">" . PHP_EOL, true);
         }
     }
 
@@ -166,11 +214,24 @@ class ExmlWriter extends \DomDocument
         $res = "\n";
         $end = $this->formatOutput ? "\n" : '';
         foreach ($exploded as $k => $v) {
-            $v = $this->buildNodeAttribute($v ,$close);
+            $v = $this->buildNodeAttribute($v, $close);
             $res .= str_repeat("\t", $k) . "<$close" . trim($v) . ">$end";
         }
 
         return $res;
+    }
+
+    /**
+     * @param $attribute
+     * @return mixed
+     */
+    protected function buildNodeAttribute($node, $close)
+    {
+        if (!empty($close) && ($aOff = preg_replace("/#.*#/", "", $node))) {
+            return $aOff;
+        }
+
+        return $this->matchAttributeString($node);
     }
 
     /**
@@ -209,35 +270,6 @@ class ExmlWriter extends \DomDocument
         }
 
         $this->createNode($data, $this->root, $this);
-    }
-
-    /**
-     * @param $attribute
-     * @return mixed
-     */
-    protected function buildNodeAttribute($node ,$close)
-    {
-         if (!empty($close) && ($aOff = preg_replace("/#.*#/","",$node))) {
-             return $aOff;
-         }
-
-         $p = "/((\w+:\w+)(\s*,\s*)?)(?R)?/";
-         if (preg_match("/#.*#/",$node,$s) && preg_match($p,$node)) {
-             $u = explode(',',str_replace('#','',$s[0]));
-
-
-             array_walk($u, function(&$value) {
-                 $r = explode(':',$value);
-                 $value = '"'.trim($r[0]).'"="'.trim($r[1]).'"';
-             });
-
-
-             if ($aOff = preg_replace("/#.*#/","",$node)) {
-                 return $aOff." ".str_replace(',' ,' ', implode (',', array_values($u)));
-             }
-
-        }
-        return $node;
     }
 
     /**
@@ -343,9 +375,4 @@ class ExmlWriter extends \DomDocument
     {
         return (string)$this->saveXML();
     }
-
-    public function validate() {
-
-    }
-
 }
