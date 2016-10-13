@@ -59,12 +59,17 @@ class ExmlWriter extends \DomDocument
     private $nodeClosed;
 
     /**
+     * @var bool
+     */
+    private $init = false;
+
+    /**
      * @param null $destFile
      * @param null $rootElt
      * @param bool|false $progressive
      * @throws \Exception
      */
-    public function __construct($destFile = null, $rootElt = "root", $encoding = "utf-8", $formatting = false, $progressive = false, $rootAttributes = "")
+    public function __construct($destFile = null, $rootElt = "root", $encoding = "utf-8", $formatting = false, $progressive = false)
     {
         parent::__construct(self::VERSION, $encoding);
         self::$xElt = new \DOMDocument(self::VERSION, $encoding);
@@ -73,17 +78,13 @@ class ExmlWriter extends \DomDocument
         $this->noname = "no_oo";
         $this->rootElt = $rootElt;
         $this->root = $this->appendChild($this->createElement($rootElt));
-        if (!empty($rootAttributes)) {
-            $this->rootAddAttribute($rootAttributes);
-        }
-
         $this->destFile = $destFile;
         $this->progressive = $progressive && !empty($destFile);
-
-        $this->init();
     }
 
     /**
+     * Adds attribute to root element
+     * should be done first if necessary
      * @param $attributeString
      */
     public function rootAddAttribute($attributeString)
@@ -132,7 +133,7 @@ class ExmlWriter extends \DomDocument
 
     /**
      * initializes Writer
-     *
+     * @return bool
      * @throws \Exception
      */
     protected function init()
@@ -146,6 +147,7 @@ class ExmlWriter extends \DomDocument
                 $this->write($this->getHead());
             }
         }
+        return true;
     }
 
     /**
@@ -173,8 +175,7 @@ class ExmlWriter extends \DomDocument
      */
     protected function getHead()
     {
-        $root = "<" . $this->rootElt . ">";
-        return $this->formatOutput ? self::$xElt->saveXML() . PHP_EOL . $root : self::$xElt->saveXML() . $root;
+        return $this->formatOutput ?  $this->saveXML() . PHP_EOL :  $this->saveXML();
     }
 
     /**
@@ -242,6 +243,10 @@ class ExmlWriter extends \DomDocument
      */
     public function append($data, $parentNode = "")
     {
+        if (!$this->init) {
+            $this->init = $this->init();
+        }
+
         if ($this->progressive) {
 
             if (!empty($parentNode)) {
