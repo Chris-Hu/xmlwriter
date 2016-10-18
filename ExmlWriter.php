@@ -175,7 +175,9 @@ class ExmlWriter extends \DomDocument
      */
     protected function getHead()
     {
-        return $this->formatOutput ?  $this->saveXML() . PHP_EOL :  $this->saveXML();
+        $head = $this->saveXML();
+        $head = str_replace("/>",">",$head);
+        return $this->formatOutput ?  $head. PHP_EOL :  $head;
     }
 
     /**
